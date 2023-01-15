@@ -3,7 +3,7 @@ mkdir build
 cd build
 
 set srcprefix=..\src\
-set compiler_flags=/Zi /W4 /Ox /D_CRT_SECURE_NO_WARNINGS /Qvec-report:1 /std:c++17
+set compiler_flags=/Zi /W4 /Od /D_CRT_SECURE_NO_WARNINGS /Qvec-report:1 /std:c++17
 set include_dir=/I ..\include\
 set files_to_compile=%srcprefix%main.cpp
 set executable_name=fc.exe
