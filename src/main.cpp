@@ -1,5 +1,7 @@
 #include "types.h"
 #include <cstdio>
+#include <chrono>
+#include <ctime>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -7,8 +9,13 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+
+#include "optick.h"
+
 void cmp_frames(u64 image_size, u64 stride, u8* frame, u8* frame2, u8* diff)
 {
+    OPTICK_EVENT();
+
     u64 write_index = 0;
     for (u64 i = 0; i < image_size * stride; i += stride)
     {
@@ -41,11 +48,19 @@ void process_frame_range(const char* path_template, const char* output_path_temp
 
     for (u64 i = start_frame + 1; i <= end_frame; i++)
     {
+        OPTICK_FRAME("MainThread");
+
         memset(name_buffer, 0, sizeof(name_buffer));
         memset(name_buffer2, 0, sizeof(name_buffer2));
 
         sprintf(name_buffer, path_template, i);
-        u8 *data2 = stbi_load(name_buffer, &x, &y, &n, 0);
+
+        u8 *data2;
+        
+        {
+            OPTICK_EVENT("stbi_load");
+            data2 = stbi_load(name_buffer, &x, &y, &n, 0);
+        }
 
         printf("New frame path: %s\n", name_buffer);
 
@@ -56,7 +71,11 @@ void process_frame_range(const char* path_template, const char* output_path_temp
         data = data2;
 
         sprintf(name_buffer2, output_path_template, i);
-        stbi_write_bmp(name_buffer2, x, y, 1, diff);
+
+        {
+            OPTICK_EVENT("stbi_write");
+            stbi_write_bmp(name_buffer2, x, y, 1, diff);
+        }
     }
 
     stbi_image_free(data);
@@ -65,5 +84,10 @@ void process_frame_range(const char* path_template, const char* output_path_temp
 
 int main()
 {
+    OPTICK_START_CAPTURE();
     process_frame_range("../data/source/frame%i.bmp", "../data/output/frame%i.bmp", 1, 5719);
+    OPTICK_STOP_CAPTURE();
+    
+    OPTICK_SAVE_CAPTURE("fc-debug-prof");
+    OPTICK_SHUTDOWN();
 }
