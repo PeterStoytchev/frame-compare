@@ -7,7 +7,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-void cmp_frames(u64 image_size, u64 stride, unsigned char* frame, unsigned char* frame2, unsigned char* diff)
+void cmp_frames(u64 image_size, u64 stride, u8* frame, u8* frame2, u8* diff)
 {
     u64 write_index = 0;
     for (u64 i = 0; i < image_size * stride; i += stride)
@@ -23,26 +23,31 @@ void cmp_frames(u64 image_size, u64 stride, unsigned char* frame, unsigned char*
     }
 }
 
-int main()
+void process_frame_range(const char* path_template, const char* output_path_template, u64 start_frame, u64 end_frame)
 {
-    int x,y,n;
+    s32 x,y,n;
 
-    u64 start_frame = 1;
-    u64 end_frame = 5719;
+    char name_buffer[32];
+    char name_buffer2[32];
+    char name_buffer3[32];
 
-    char name_buffer[30];
-    char name_buffer2[30];
+    memset(name_buffer3, 0, sizeof(name_buffer3));
+    sprintf(name_buffer3, path_template, start_frame);
 
-    unsigned char* data = stbi_load("../data/source/frame1.bmp", &x, &y, &n, 0);
-    unsigned char* diff = (unsigned char*)malloc(x * y);
+    printf("Initial frame path: %s\n", name_buffer3);
+
+    u8* data = stbi_load(name_buffer3, &x, &y, &n, 0);
+    u8* diff = (u8*)malloc(x * y);
 
     for (u64 i = start_frame + 1; i <= end_frame; i++)
     {
         memset(name_buffer, 0, sizeof(name_buffer));
         memset(name_buffer2, 0, sizeof(name_buffer2));
 
-        sprintf(name_buffer, "../data/source/frame%i.bmp", i);
-        unsigned char *data2 = stbi_load(name_buffer, &x, &y, &n, 0);
+        sprintf(name_buffer, path_template, i);
+        u8 *data2 = stbi_load(name_buffer, &x, &y, &n, 0);
+
+        printf("New frame path: %s\n", name_buffer);
 
         cmp_frames(x * y, n, data, data2, diff);
 
@@ -50,10 +55,15 @@ int main()
 
         data = data2;
 
-        sprintf(name_buffer2, "../data/output/frame%i.bmp", i);
+        sprintf(name_buffer2, output_path_template, i);
         stbi_write_bmp(name_buffer2, x, y, 1, diff);
     }
 
     stbi_image_free(data);
     free(diff);
+}
+
+int main()
+{
+    process_frame_range("../data/source/frame%i.bmp", "../data/output/frame%i.bmp", 1, 5719);
 }
