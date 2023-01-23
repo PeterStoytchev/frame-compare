@@ -7,38 +7,43 @@
 #include "optick.h"
 
 #include <cstdio>
+#include <math.h>
 #include "types.h"
 
-void cmp_frames(u64 image_size, u64 stride, u8* frame, u8* frame2, u8* diff)
+bool cmp_frames(u64 image_size, u64 stride, u8* frame, u8* frame2, u8* diff)
 {
     OPTICK_EVENT();
 
+    u64 white_count = 0;
     u64 write_index = 0;
+
     for (u64 i = 0; i < image_size * stride; i += stride)
     {
-        u8 counter = 0;
-        for (s32 j = 0; j < stride; j++)
-        {
-            counter += frame[i + j] == frame2[i + j];
-        }
+       #define VAL 22
+       bool r = abs(frame[i] - frame2[i]) < VAL;
+       bool g = abs(frame[i + 1] - frame2[i + 1]) < VAL;
+       bool b = abs(frame[i + 2] - frame2[i + 2]) < VAL;
 
-        diff[write_index] = (counter == stride) * 255;
+        bool eq = r && g && b;
+        white_count += eq;
+
+        diff[write_index] = eq * 225;
         write_index++;
     }
+
+    return white_count > image_size * 0.93;
 }
 
 void process_frame_range(const char* path_template, const char* output_path_template, u64 start_frame, u64 end_frame)
 {
     s32 x,y,n;
 
-    char name_buffer[32];
-    char name_buffer2[32];
-    char name_buffer3[32];
+    char name_buffer[128];
+    char name_buffer2[128];
+    char name_buffer3[128];
 
     memset(name_buffer3, 0, sizeof(name_buffer3));
     sprintf(name_buffer3, path_template, start_frame);
-
-    //printf("Initial frame path: %s\n", name_buffer3);
 
     u8* data = stbi_load(name_buffer3, &x, &y, &n, 0);
     u8* diff = (u8*)malloc(x * y);
@@ -59,20 +64,17 @@ void process_frame_range(const char* path_template, const char* output_path_temp
                 data2 = stbi_load(name_buffer, &x, &y, &n, 0);
             }
 
-            //printf("New frame path: %s\n", name_buffer);
-
-            cmp_frames(x * y, n, data, data2, diff);
-
-            stbi_image_free(data);
-
-            data = data2;
-
             sprintf(name_buffer2, output_path_template, i);
+            cmp_frames(x * y, n, data, data2, diff);
 
             {
                 OPTICK_EVENT("stbi_write");
                 stbi_write_bmp(name_buffer2, x, y, 1, diff);
             }
+
+            stbi_image_free(data);
+            data = data2;
+
         }
     }
 
