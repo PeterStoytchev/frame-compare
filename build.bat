@@ -3,9 +3,9 @@ mkdir build
 cd build
 
 set srcprefix=..\src\
-set compiler_flags=/Zi /W4 /Ox /D_CRT_SECURE_NO_WARNINGS /Qvec-report:1 /std:c++17 /EHsc
+set compiler_flags=/Zi /W4 /Od /D_CRT_SECURE_NO_WARNINGS /Qvec-report:1 /std:c++17 /EHsc /FAs
 set include_dir=/I ..\include\ /I ..\vendor\optick\
-set files_to_compile=%srcprefix%main.cpp %srcprefix%cmp.cpp
+set files_to_compile=%srcprefix%main.cpp %srcprefix%cmp.cpp %srcprefix%simd.cpp
 set executable_name=fc.exe
 set linker_libs=kernel32.lib user32.lib shell32.lib Ws2_32.lib Mswsock.lib AdvApi32.lib OptickCore.lib /LIBPATH:..\vendor\optick\
 

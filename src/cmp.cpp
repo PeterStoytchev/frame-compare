@@ -10,25 +10,57 @@
 #include <math.h>
 #include "types.h"
 
-bool cmp_frames(u64 image_size, u64 stride, u8* frame, u8* frame2, u8* diff)
+#include <immintrin.h>
+
+__m256i SetRGB(u8* frame);
+
+bool cmp_frames_rgb(u64 image_size, u8* frame, u8* frame2, u8* diff)
 {
     OPTICK_EVENT();
 
     u64 white_count = 0;
     u64 write_index = 0;
 
-    for (u64 i = 0; i < image_size * stride; i += stride)
-    {
-       #define VAL 22
-       bool r = abs(frame[i] - frame2[i]) < VAL;
-       bool g = abs(frame[i + 1] - frame2[i + 1]) < VAL;
-       bool b = abs(frame[i + 2] - frame2[i + 2]) < VAL;
+    #define VAL 22
+    __m256i cmp = _mm256_set1_epi8(VAL);
 
+    #define PIXELS_PER_ITER 10
+    //#define PIXELS_PER_ITER 1
+    for (u64 i = 0; i < image_size * 3; i += 3 * PIXELS_PER_ITER)
+    {
+        /*
+
+        bool r = abs(frame[i] - frame2[i]) < VAL;
+        bool g = abs(frame[i + 1] - frame2[i + 1]) < VAL;
+        bool b = abs(frame[i + 2] - frame2[i + 2]) < VAL;
+        
         bool eq = r && g && b;
         white_count += eq;
-
         diff[write_index] = eq * 225;
         write_index++;
+        */
+
+        u8* tashak = frame + i + 32;
+        __m256i fr1 = _mm256_loadu_si256((const __m256i*)frame + i);
+        __m256i fr2 = _mm256_loadu_si256((const __m256i*)frame2 + i);
+
+        __m256i sub = _mm256_sub_epi8(fr1, fr2);
+
+        __m256i absolutes = _mm256_abs_epi8(sub);
+
+        __m256i res = _mm256_cmpgt_epi8(absolutes, cmp);
+        
+        u8 results[32];
+        _mm256_storeu_si256((__m256i*)&results, res);
+
+        for (u64 j = 0; j < PIXELS_PER_ITER * 3; j += 3)
+        {
+            bool eq = !results[j] && !results[j + 1] && !results[j + 2];
+            white_count += eq;
+            diff[write_index] = eq * 225;
+            write_index++;
+        }
+
     }
 
     return white_count > image_size * 0.93;
@@ -65,7 +97,7 @@ void process_frame_range(const char* path_template, const char* output_path_temp
             }
 
             sprintf(name_buffer2, output_path_template, i);
-            cmp_frames(x * y, n, data, data2, diff);
+            cmp_frames_rgb(x * y, data, data2, diff);
 
             {
                 OPTICK_EVENT("stbi_write");

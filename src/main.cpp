@@ -20,8 +20,8 @@ int main()
             u32 end_frame = 4220;
             //u32 end_frame = 5719;
 
-            u32 thread_count = std::thread::hardware_concurrency();
-            //u32 thread_count = 2;
+            //u32 thread_count = std::thread::hardware_concurrency();
+            u32 thread_count = 1;
             std::thread** threads = (std::thread **)malloc(sizeof(std::thread*) * thread_count);
 
             u32 frame_count = end_frame - start_frame + 1;
@@ -38,7 +38,7 @@ int main()
                 u32 start_frame_local = (i * frames_per_thread) + (i == 0);
                 printf("starting new thread to process from %u to %u\n", start_frame_local, (i * frames_per_thread) + frames_per_thread);
 
-                std::thread *th = new std::thread(process_frame_range_thread, "G:/source/frame%i.bmp", "G:/target/frame%i.bmp", start_frame_local, (i * frames_per_thread) + frames_per_thread);
+                std::thread *th = new std::thread(process_frame_range_thread, "G:/source/frame%i.bmp", "G:/target2/frame%i.bmp", start_frame_local, (i * frames_per_thread) + frames_per_thread);
                 //std::thread *th = new std::thread(process_frame_range_thread, "C:/Users/Peter/Desktop/frame-compare/data/source/frame%i.bmp", "C:/Users/Peter/Desktop/frame-compare/data/target/frame%i.bmp", start_frame_local, (i * frames_per_thread) + frames_per_thread);
 
                 threads[i] = th;
@@ -53,7 +53,7 @@ int main()
             if (leftovers != 0)
             {
                 u32 last_start = thread_count * frames_per_thread;
-                process_frame_range("G:/source/frame%i.bmp", "G:/target/frame%i.bmp", last_start, last_start + leftovers);
+                process_frame_range("G:/source/frame%i.bmp", "G:/target2/frame%i.bmp", last_start, last_start + leftovers);
                 //process_frame_range("C:/Users/Peter/Desktop/frame-compare/data/source/frame%i.bmp", "C:/Users/Peter/Desktop/frame-compare/data/target/frame%i.bmp", last_start, last_start + leftovers);
             }
         }
